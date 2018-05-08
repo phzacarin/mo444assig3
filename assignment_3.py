@@ -41,7 +41,7 @@ def stem_headlines(headlines):
 def headlines_2_text(headlines):
     print("Converting all headlines to text cleaning it in the process...")
     all_headlines = ""
-    for i in range (1, 10000): #Concatenate all headlines into a text. 10000 is for test purposes only
+    for i in range (1, len(headlines)): #Concatenate all headlines into a text. 10000 is for test purposes only
         all_headlines = all_headlines + (headlines.iloc[i, 0]).lower()
         all_headlines = all_headlines + " "
     
@@ -83,7 +83,7 @@ def extract_ngrams(filtered_headlines):
     filtered_sorted_fdist = list()
     
     for i in range (len(sorted_fdist)):
-        if sorted_fdist[i][1] != 1:
+        if sorted_fdist[i][1] > 1000: #Only get frequencies > 1000
             filtered_sorted_fdist.append(sorted_fdist[i])
     
     return filtered_sorted_fdist, allgrams
@@ -91,8 +91,8 @@ def extract_ngrams(filtered_headlines):
 def build_feature_set(stem_heads, filtered_sorted_fdist):
     feature_matrix = np.zeros([len(stem_heads), len(filtered_sorted_fdist)])
     
-    #len(stem_headlines)
-    for i in range (1, 5000): #For all headlines starting in 1 as it is a pandas dataframe
+    #len(stem_heads)
+    for i in range (1, len(stem_heads)): #For all headlines starting in 1 as it is a pandas dataframe
         print ("Processing headline #" + str(i))
         feat_vec = [0] * len(filtered_sorted_fdist) #New feature array with the size of the hash
         
@@ -102,7 +102,6 @@ def build_feature_set(stem_heads, filtered_sorted_fdist):
             if curr_ngram in stem_heads.iloc[i][1]: #Check if headline contains n-gram
                 feat_vec[j] = 1
         
-        print(feat_vec)
         feature_matrix[i,:] = feat_vec
         
     
@@ -115,9 +114,9 @@ def main():
     stem_heads = stem_headlines(headlines)
     filtered_headlines = headlines_2_text(headlines)
     filtered_sorted_fdist, allgrams = extract_ngrams(filtered_headlines)
-    #feature_matrix = build_feature_set(stem_heads, filtered_sorted_fdist)
-    result1 = pool.apply_async(build_feature_set, [stem_heads, filtered_sorted_fdist]) #Evaluate asynchronously
-    feature_matrix = result1.get()
+    feature_matrix = build_feature_set(stem_heads, filtered_sorted_fdist)
+    #with Pool(processes=4) as pool:
+    #    pool.starmap(build_feature_set, [(stem_heads, filtered_sorted_fdist)])
     
     return feature_matrix
     
