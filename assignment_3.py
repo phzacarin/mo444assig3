@@ -122,11 +122,14 @@ def extract_stem_headlines_by_year (dates, stem_heads, year):
 
 def main():
     pool = Pool()
+    year = '2003'
+    
     dates, headlines = read_input()
     stem_heads = stem_headlines(headlines)
     filtered_headlines = headlines_2_text(headlines)
     filtered_sorted_fdist, allgrams = extract_ngrams(filtered_headlines)
-    feature_matrix = build_feature_set(stem_heads, filtered_sorted_fdist)
+    year_headlines = extract_stem_headlines_by_year (dates, stem_heads, year)
+    feature_matrix = build_feature_set(year_headlines, filtered_sorted_fdist)
     #with Pool(processes=4) as pool:
     #    pool.starmap(build_feature_set, [(stem_heads, filtered_sorted_fdist)])
     
