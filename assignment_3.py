@@ -15,45 +15,59 @@ from skimage.data import imread
 import nltk
 from nltk.corpus import stopwords
 from nltk.stem.porter import PorterStemmer
+from nltk.util import ngrams
 from itertools import chain
 import operator
+from multiprocessing import Pool
 
 def read_input():
+    print("Loading all data...")
     file_path = Path('/Users/Pedro/Library/Mobile Documents/com~apple~CloudDocs/MO444/Assignments/3/news_headlines.csv')
     file_contents = pd.read_csv(file_path, header=None)
     dates = file_contents.iloc[:,0:1]
     headlines = file_contents.iloc[:,1:2]
     
-    return dates, headlines
-    
+    return dates, headlines        
+
+def stem_headlines(headlines):
+    print ("Extracting stem words for all headlines...")
+    for i in range(len(headlines)):
+        porter = PorterStemmer()
+        stemmed_words = [porter.stem(word) for word in headlines.iloc[i][1].split()]
+        headlines.iloc[i][1] = " ".join(stemmed_words)
+        
+    return headlines
+
 def headlines_2_text(headlines):
+    print("Converting all headlines to text cleaning it in the process...")
     all_headlines = ""
-    for i in range (1, 10000): """NUMERO ARBITRARIO PARA TESTES SOMENTE"""
+    for i in range (1, 10000): #Concatenate all headlines into a text. 10000 is for test purposes only
         all_headlines = all_headlines + (headlines.iloc[i, 0]).lower()
         all_headlines = all_headlines + " "
     
     words_wo_numbers = [word for word in all_headlines.split() if not word.isdigit()];
     
-    """Filter all stopwords"""
+    #Filter all stopwords
     filtered_words = [word for word in words_wo_numbers if word not in stopwords.words('english')]
     
-    """Find all stem words"""
+    #Find all stem words
     porter = PorterStemmer()
     stemmed_words = [porter.stem(word) for word in filtered_words]
         
-    """Concatenates filtered words back in a single string"""
+    #Concatenates filtered words back in a single string
     filtered_headlines = " ".join(stemmed_words)
     
-    return all_headlines, filtered_headlines
+    return filtered_headlines
     
-def extract_ngrams(content):
-    allgrams = nltk.everygrams(content.split(), 2, 4)
+def extract_ngrams(filtered_headlines):
+    print("Extracting n-grams...")
+    allgrams = nltk.everygrams(filtered_headlines.split(), 2, 4)
     fdist = nltk.FreqDist(allgrams)
     
-    """Transforming FreqDist hash in a list of tuples ordered by number of occurrences"""
+    #Transforming FreqDist hash in a list of tuples ordered by number of occurrences
     sorted_fdist = sorted(fdist.items(), key = operator.itemgetter(1))
     
-    """Removing unary frequencies"""
+    #Removing unary frequencies
     filtered_sorted_fdist = list()
     
     for i in range (len(sorted_fdist)):
@@ -62,16 +76,40 @@ def extract_ngrams(content):
     
     return filtered_sorted_fdist, allgrams
 
-
-def build_feature_set(headlines, fdist, allgrams):
-    ngrams_dict = {}
+def build_feature_set(stem_heads, filtered_sorted_fdist):
+    feature_matrix = np.zeros([len(stem_heads), len(filtered_sorted_fdist)])
     counter = 0
     
-    """Building a hashmap with all n-grams, with an iterative counter as key"""
-    for ngram in allgrams:
-        ngrams_dict[counter] = ngram
-        counter = counter + 1
+    #len(stem_headlines)
+    for i in range (1, 5000): #For all headlines starting in 1 as it is a pandas dataframe
+        print ("Processing headline #" + str(i))
+        feat_vec = [0] * len(filtered_sorted_fdist) #New feature array with the size of the hash
         
+        for j in range (len(filtered_sorted_fdist)): #For each entry in the n-gram frequency list
+            curr_word_list = filtered_sorted_fdist[j][0]
+            cat_curr_word_list =  ' '.join(curr_word_list)
+            
+            if cat_curr_word_list in stem_heads.iloc[i][1]:
+                feat_vec[j] = 1
+        
+        feature_matrix[i,:] = feat_vec
+        
+    
+    return feature_matrix
+
+
+def main():
+    pool = Pool()
+    dates, headlines = read_input()
+    stem_heads = stem_headlines(headlines)
+    filtered_headlines = headlines_2_text(headlines)
+    filtered_sorted_fdist, allgrams = extract_ngrams(filtered_headlines)
+    #feature_matrix = build_feature_set(stem_heads, filtered_sorted_fdist)
+    result1 = pool.apply_async(build_feature_set, [stem_heads, filtered_sorted_fdist]) #Evaluate asynchronously
+    feature_matrix = result1.get()
+    
+    return feature_matrix
+    
     
         
     
