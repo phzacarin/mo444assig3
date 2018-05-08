@@ -60,9 +60,21 @@ def headlines_2_text(headlines):
     return filtered_headlines
     
 def extract_ngrams(filtered_headlines):
-    print("Extracting n-grams...")
-    allgrams = nltk.everygrams(filtered_headlines.split(), 2, 4)
-    fdist = nltk.FreqDist(allgrams)
+    print("Extracting char-4-grams...")
+    
+    #Extracting char-level 4-grams
+    allgrams = ngrams(filtered_headlines, 4)
+    
+    #Casting into a list
+    allgrams_list = list(allgrams)
+    #Concatenating chars into a string
+    for i in range (len(allgrams_list)):
+        allgrams_list[i] = "".join(allgrams_list[i])
+    
+    #allgrams = nltk.everygrams(filtered_headlines.split(), 2, 4)
+    
+    #Calculating all frequencies
+    fdist = nltk.FreqDist(allgrams_list)
     
     #Transforming FreqDist hash in a list of tuples ordered by number of occurrences
     sorted_fdist = sorted(fdist.items(), key = operator.itemgetter(1))
@@ -78,7 +90,6 @@ def extract_ngrams(filtered_headlines):
 
 def build_feature_set(stem_heads, filtered_sorted_fdist):
     feature_matrix = np.zeros([len(stem_heads), len(filtered_sorted_fdist)])
-    counter = 0
     
     #len(stem_headlines)
     for i in range (1, 5000): #For all headlines starting in 1 as it is a pandas dataframe
@@ -86,12 +97,12 @@ def build_feature_set(stem_heads, filtered_sorted_fdist):
         feat_vec = [0] * len(filtered_sorted_fdist) #New feature array with the size of the hash
         
         for j in range (len(filtered_sorted_fdist)): #For each entry in the n-gram frequency list
-            curr_word_list = filtered_sorted_fdist[j][0]
-            cat_curr_word_list =  ' '.join(curr_word_list)
+            curr_ngram = filtered_sorted_fdist[j][0] #Get current n-gram
             
-            if cat_curr_word_list in stem_heads.iloc[i][1]:
+            if curr_ngram in stem_heads.iloc[i][1]: #Check if headline contains n-gram
                 feat_vec[j] = 1
         
+        print(feat_vec)
         feature_matrix[i,:] = feat_vec
         
     
