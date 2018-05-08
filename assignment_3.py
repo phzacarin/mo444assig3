@@ -108,12 +108,13 @@ def build_feature_set(stem_heads, filtered_sorted_fdist):
     return feature_matrix
 
 def extract_stem_headlines_by_year (dates, stem_heads, year):
+    print("Extracting headlines for year " + year + "...")
     
     year_headlines = list();
     
     for i in range(1, len(dates)):
-        currYear = dates.iloc[i,0][:4] #Get headline year
-        if currData[:4] == year:
+        currYear = str(dates.iloc[i,0])[:4] #Get headline year
+        if currYear[:4] == year:
             year_headlines.append(stem_heads.iloc[i, 0])
             
     return year_headlines
