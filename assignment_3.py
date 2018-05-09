@@ -19,6 +19,8 @@ from nltk.util import ngrams
 from itertools import chain
 import operator
 from multiprocessing import Pool
+from sklearn.decomposition import PCA
+from sklearn.cluster import KMeans
 
 def read_input():
     print("Loading all data...")
@@ -83,7 +85,7 @@ def extract_ngrams(filtered_headlines):
     filtered_sorted_fdist = list()
     
     for i in range (len(sorted_fdist)):
-        if sorted_fdist[i][1] > 1000: #Only get frequencies > 1000
+        if sorted_fdist[i][1] > 600: #Only get frequencies > n
             filtered_sorted_fdist.append(sorted_fdist[i])
     
     return filtered_sorted_fdist, allgrams
@@ -92,14 +94,15 @@ def build_feature_set(stem_heads, filtered_sorted_fdist):
     feature_matrix = np.zeros([len(stem_heads), len(filtered_sorted_fdist)])
     
     #len(stem_heads)
-    for i in range (1, len(stem_heads)): #For all headlines starting in 1 as it is a pandas dataframe
+    for i in range (0, len(stem_heads)): #For all headlines. STARTS IN 0 IF LIST, 1 IF PANDAS DATAFRAME
         print ("Processing headline #" + str(i))
         feat_vec = [0] * len(filtered_sorted_fdist) #New feature array with the size of the hash
         
         for j in range (len(filtered_sorted_fdist)): #For each entry in the n-gram frequency list
             curr_ngram = filtered_sorted_fdist[j][0] #Get current n-gram
             
-            if curr_ngram in stem_heads.iloc[i][1]: #Check if headline contains n-gram
+            #if curr_ngram in stem_heads.iloc[i][1]: #Check if headline contains n-gram
+            if curr_ngram in stem_heads[i]:
                 feat_vec[j] = 1
         
         feature_matrix[i,:] = feat_vec
@@ -119,21 +122,44 @@ def extract_stem_headlines_by_year (dates, stem_heads, year):
             
     return year_headlines
 
+#Running PCA gives the same result as not running, so there's no need to use it
+def run_PCA (feature_matrix):
+    pca = PCA(svd_solver = 'auto')
+    pca.fit(feature_matrix)
+    X = pca.transform(feature_matrix)
+    
+    return X
+
+def kmeans(k, feature_matrix):
+    kmeans = KMeans(n_clusters = k, random_state = 0).fit(feature_matrix)
+    cost = kmeans.inertia_
+    
+    return cost
 
 def main():
-    pool = Pool()
-    year = '2003'
+    year = '2005'
     
     dates, headlines = read_input()
     stem_heads = stem_headlines(headlines)
     filtered_headlines = headlines_2_text(headlines)
     filtered_sorted_fdist, allgrams = extract_ngrams(filtered_headlines)
     year_headlines = extract_stem_headlines_by_year (dates, stem_heads, year)
+    
     feature_matrix = build_feature_set(year_headlines, filtered_sorted_fdist)
+    
+    run_kmeans(feature_matrix)
+    #pool = Pool(processes=4)
+    #feature_matrix = [pool.apply(build_feature_set, args=(year_headlines, filtered_sorted_fdist))]
+    
     #with Pool(processes=4) as pool:
     #    pool.starmap(build_feature_set, [(stem_heads, filtered_sorted_fdist)])
     
     return feature_matrix
+
+
+def run_kmeans(feature_matrix, k_start, k_end):
+    for i in range (k_start, k_end):
+        print("cost i=" + str(i) + " = " + str(kmeans(i, feature_matrix)))
     
     
         
