@@ -16,6 +16,7 @@ import nltk
 from nltk.corpus import stopwords
 from nltk.stem.porter import PorterStemmer
 from nltk.util import ngrams
+from nltk.text import TextCollection
 from itertools import chain
 import operator
 from multiprocessing import Pool
@@ -39,6 +40,28 @@ def stem_headlines(headlines):
         headlines.iloc[i][1] = " ".join(stemmed_words)
         
     return headlines
+
+def filter_headlines(headlines):
+    
+    filtered_headlines = list();
+    
+    for i in range (1,len(headlines)):
+        headline_split = headlines.iloc[i, 0].split()
+        
+        #Remove numbers
+        head_wo_numbers = [word for word in headline_split if not word.isdigit()]
+        
+        #Remove stopwords
+        head_wo_stopwords = [word for word in head_wo_numbers if word not in stopwords.words('english')]
+        
+        #Find stem words
+        porter = PorterStemmer()
+        stemmed_words = [porter.stem(word) for word in head_wo_stopwords]
+        
+        #Append current headline to filtered headlines array
+        filtered_headlines.append(" ".join(stemmed_words))
+        
+    return filtered_headlines
 
 def headlines_2_text(headlines):
     print("Converting all headlines to text cleaning it in the process...")
@@ -64,31 +87,33 @@ def headlines_2_text(headlines):
 def extract_ngrams(filtered_headlines):
     print("Extracting char-4-grams...")
     
-    #Extracting char-level 4-grams
-    allgrams = ngrams(filtered_headlines, 4)
+    allgrams = list()
+
+    #Extracting char-4-grams for each headline    
+    for i in range (len(filtered_headlines)):
+        curr_grams = ngrams(filtered_headlines[i], 4)
+        curr_grams_list = list(curr_grams)
+        for j in range (len(curr_grams_list)):
+            allgrams.append ("".join(curr_grams_list[j]))
+        
+
+    #TF*IDF empty dictionary 
+    tfidf = {}
     
-    #Casting into a list
-    allgrams_list = list(allgrams)
-    #Concatenating chars into a string
-    for i in range (len(allgrams_list)):
-        allgrams_list[i] = "".join(allgrams_list[i])
-    
-    #allgrams = nltk.everygrams(filtered_headlines.split(), 2, 4)
-    
-    #Calculating all frequencies
-    fdist = nltk.FreqDist(allgrams_list)
+    #Calculating all frequencies to obtain char-4-grams without repetition
+    fdist = nltk.FreqDist(allgrams)
     
     #Transforming FreqDist hash in a list of tuples ordered by number of occurrences
     sorted_fdist = sorted(fdist.items(), key = operator.itemgetter(1))
     
-    #Removing unary frequencies
     filtered_sorted_fdist = list()
+    filtered_headlines_text = TextCollection(filtered_headlines)
     
+    #Calculating TF*IDF for all char-4-grams
     for i in range (len(sorted_fdist)):
-        if sorted_fdist[i][1] > 600: #Only get frequencies > n
-            filtered_sorted_fdist.append(sorted_fdist[i])
+        tfidf[sorted_fdist[i][0]] = tf_idf(sorted_fdist[i][0], filtered_headlines_text)
     
-    return filtered_sorted_fdist, allgrams
+    return tfidf, allgrams
 
 def build_feature_set(stem_heads, filtered_sorted_fdist):
     feature_matrix = np.zeros([len(stem_heads), len(filtered_sorted_fdist)])
@@ -141,7 +166,7 @@ def main():
     
     dates, headlines = read_input()
     stem_heads = stem_headlines(headlines)
-    filtered_headlines = headlines_2_text(headlines)
+    filtered_headlines = filter_headlines(headlines) #filtered_headlines is a list
     filtered_sorted_fdist, allgrams = extract_ngrams(filtered_headlines)
     year_headlines = extract_stem_headlines_by_year (dates, stem_heads, year)
     

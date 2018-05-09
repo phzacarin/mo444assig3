@@ -1,0 +1,21 @@
+\begin{thebibliography}{1}
+
+\bibitem{Silva_2010}
+Fulano Silva and Beltrano Souza.
+\newblock Hey! this is my paper.
+\newblock In {\em European Conference on Nothing (ECN)}, pages 000--007, Graz,
+  Austria, 2010.
+
+\bibitem{Silva_2010b}
+Fulano Silva.
+\newblock A paper on everything useless.
+\newblock In {\em European Conference on Nothing (ECN)}, pages 008--014, Graz,
+  Austria, 2010.
+
+\bibitem{Silva_2010c}
+Fulano Silva, Beltrano Souza, and Sicrano Rocha.
+\newblock Revisiting the classical publishing problem.
+\newblock In {\em European Conference on Nothing (ECN)}, pages 015--021, Graz,
+  Austria, 2010.
+
+\end{thebibliography}
