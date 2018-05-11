@@ -9,6 +9,7 @@ import os
 import csv
 import numpy as np
 import pandas as pd
+import math
 from PIL import Image
 from pathlib import Path
 from skimage.data import imread
@@ -21,7 +22,10 @@ from itertools import chain
 import operator
 from multiprocessing import Pool
 from sklearn.decomposition import PCA
-from sklearn.cluster import KMeans
+from sklearn.cluster import MiniBatchKMeans, KMeans
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.feature_extraction.text import TfidfTransformer
+from sklearn.preprocessing import normalize
 
 def read_input():
     print("Loading all data...")
@@ -45,7 +49,7 @@ def filter_headlines(headlines):
     
     filtered_headlines = list();
     
-    for i in range (1,len(headlines)):
+    for i in range (1, len(headlines)):
         headline_split = headlines.iloc[i, 0].split()
         
         #Remove numbers
@@ -83,7 +87,38 @@ def headlines_2_text(headlines):
     filtered_headlines = " ".join(stemmed_words)
     
     return filtered_headlines
+
+#OK - Here we do not tokenize.
+def freq(ngram, headline):
+    return headline.count(ngram)
+
+#OK
+def word_count(headline):
+    return len(headline.split())
+
+#OK
+def tf(ngram, headline):
+    #return (freq(ngram, headline) / float(word_count(headline)))
+    return freq(ngram, headline)
+
+#OK
+def num_headlines_containing(ngram, headlines):
+    count = 0
+    for headline in headlines:
+        if freq(ngram, headline) > 0:
+            count += 1
+    return 1 + count
+
+#OK
+def idf(ngram, headlines):
+    return math.log(len(headlines) /
+            (1.0 + float(num_headlines_containing(ngram, headlines))))
     
+#OK
+#headline and headlines are NOT tokenized yet
+def tf_idf(ngram, headline, headlines):
+    return (tf(ngram, headline) * idf(ngram, headlines))
+
 def extract_ngrams(filtered_headlines):
     print("Extracting char-4-grams...")
     
@@ -95,10 +130,6 @@ def extract_ngrams(filtered_headlines):
         curr_grams_list = list(curr_grams)
         for j in range (len(curr_grams_list)):
             allgrams.append ("".join(curr_grams_list[j]))
-        
-
-    #TF*IDF empty dictionary 
-    tfidf = {}
     
     #Calculating all frequencies to obtain char-4-grams without repetition
     fdist = nltk.FreqDist(allgrams)
@@ -106,14 +137,50 @@ def extract_ngrams(filtered_headlines):
     #Transforming FreqDist hash in a list of tuples ordered by number of occurrences
     sorted_fdist = sorted(fdist.items(), key = operator.itemgetter(1))
     
-    filtered_sorted_fdist = list()
-    filtered_headlines_text = TextCollection(filtered_headlines)
+    return sorted_fdist, allgrams
+
+#Extract matrix of tf values 
+def extract_tf_matrix(filtered_headlines, sorted_fdist):
+    tf_matrix = np.zeros([len(filtered_headlines), len(sorted_fdist)])
+
+    for i in range (0, len(filtered_headlines)): #For all headlines. STARTS IN 0 IF LIST, 1 IF PANDAS DATAFRAME
+        print ("Processing headline #" + str(i))
+        feat_vec = [0] * len(sorted_fdist) #New feature array with the size of the hash
+
+        for j in range (len(sorted_fdist)): #For each entry in the n-gram frequency list
+            curr_ngram = sorted_fdist[j][0] #Get current n-gram
+            
+            #Frequency of every ngram in headline[i]
+            feat_vec[j] = tf(curr_ngram, filtered_headlines[i])
+        
+        tf_matrix[i,:] = feat_vec
+        
+    return tf_matrix
+
+#Extract matrix of idf values
+def extract_idf_matrix(tf_matrix, filtered_headlines, sorted_fdist):
     
-    #Calculating TF*IDF for all char-4-grams
-    for i in range (len(sorted_fdist)):
-        tfidf[sorted_fdist[i][0]] = tf_idf(sorted_fdist[i][0], filtered_headlines_text)
+    size = tf_matrix.shape[1]
+    idf_matrix = np.zeros([size, size])
     
-    return tfidf, allgrams
+    #For every ngram, calculate its idf
+    for i in range (size):
+        curr_idf = idf(sorted_fdist[i][0], filtered_headlines)
+        idf_matrix[i,i] = curr_idf
+        
+    return idf_matrix
+
+#Multiply tf_matrix by idf_matrix resulting in tfidf_matrix
+def extract_tfidf_matrix(tf_matrix, idf_matrix):
+    tfidf_matrix = np.dot(tf_matrix, idf_matrix)
+    
+    return tfidf_matrix
+    
+def normalize_matrix(matrix):
+    norm_matrix = normalize(matrix)
+    
+    return norm_matrix
+
 
 def build_feature_set(stem_heads, filtered_sorted_fdist):
     feature_matrix = np.zeros([len(stem_heads), len(filtered_sorted_fdist)])
@@ -135,7 +202,7 @@ def build_feature_set(stem_heads, filtered_sorted_fdist):
     
     return feature_matrix
 
-def extract_stem_headlines_by_year (dates, stem_heads, year):
+def extract_filtered_headlines_by_year (dates, headlines, year):
     print("Extracting headlines for year " + year + "...")
     
     year_headlines = list();
@@ -143,7 +210,7 @@ def extract_stem_headlines_by_year (dates, stem_heads, year):
     for i in range(1, len(dates)):
         currYear = str(dates.iloc[i,0])[:4] #Get headline year
         if currYear[:4] == year:
-            year_headlines.append(stem_heads.iloc[i, 0])
+            year_headlines.append(headlines[i])
             
     return year_headlines
 
@@ -155,36 +222,51 @@ def run_PCA (feature_matrix):
     
     return X
 
-def kmeans(k, feature_matrix):
-    kmeans = KMeans(n_clusters = k, random_state = 0).fit(feature_matrix)
-    cost = kmeans.inertia_
-    
-    return cost
-
 def main():
-    year = '2005'
+    year = '2003'
     
     dates, headlines = read_input()
-    stem_heads = stem_headlines(headlines)
-    filtered_headlines = filter_headlines(headlines) #filtered_headlines is a list
-    filtered_sorted_fdist, allgrams = extract_ngrams(filtered_headlines)
-    year_headlines = extract_stem_headlines_by_year (dates, stem_heads, year)
+    #stem_heads = stem_headlines(headlines)
+    filtered_headlines = filter_headlines(headlines) #list of processed headlines
+    sorted_fdist, allgrams = extract_ngrams(filtered_headlines) #sorted ngrams by frequency
+    year_headlines = extract_filtered_headlines_by_year (dates, filtered_headlines, year) #Get only headlines of defined year
     
-    feature_matrix = build_feature_set(year_headlines, filtered_sorted_fdist)
+    #First, execute for all headlines
+    tf_matrix = extract_tf_matrix(headlines, sorted_fdist) #Calculate frequency matrix
+    idf_matrix = extract_idf_matrix(tf_matrix, headlines, sorted_fdist); #Calculate idf matrix
+    tfidf_matrix = extract_tfidf_matrix(tf_matrix, idf_matrix) #Calculate tfidf matrix
+    norm_tfidf_matrix = normalize_matrix(tfidf_matrix) #Normalize tfidf matrix
     
-    run_kmeans(feature_matrix)
+    run_mini_batch_kmeans(norm_tfidf_matrix, 1, 12) #Run KMeans
     #pool = Pool(processes=4)
     #feature_matrix = [pool.apply(build_feature_set, args=(year_headlines, filtered_sorted_fdist))]
     
     #with Pool(processes=4) as pool:
     #    pool.starmap(build_feature_set, [(stem_heads, filtered_sorted_fdist)])
     
-    return feature_matrix
+    return norm_tfidf_matrix
 
+
+def mbkmeans (k, feature_matrix):
+    mbk = MiniBatchKMeans(init='k-means++', n_clusters=k, batch_size=100, n_init=10, max_no_improvement=10, verbose=0)
+    mbk.fit(X)
+    cost = mbk.inertia_
+    
+    return cost
+
+def run_mini_batch_kmeans(feature_matrix, k_start, k_end):
+    for i in range (k_start, k_end):
+        print("cost k=" + str(i) + " = " + str(mbkmeans(i, feature_matrix)))
+
+def kmeans(k, feature_matrix):
+    kmeans = KMeans(n_clusters = k, random_state = 0).fit(feature_matrix)
+    cost = kmeans.inertia_
+    
+    return cost
 
 def run_kmeans(feature_matrix, k_start, k_end):
     for i in range (k_start, k_end):
-        print("cost i=" + str(i) + " = " + str(kmeans(i, feature_matrix)))
+        print("cost k=" + str(i) + " = " + str(kmeans(i, feature_matrix)))
     
     
         
