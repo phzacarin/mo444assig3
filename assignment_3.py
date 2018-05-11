@@ -46,7 +46,7 @@ def stem_headlines(headlines):
     return headlines
 
 def filter_headlines(headlines):
-    
+    print ("Filtering all headlines...")
     filtered_headlines = list();
     
     for i in range (1, len(headlines)):
@@ -137,6 +137,8 @@ def extract_ngrams(filtered_headlines):
     #Transforming FreqDist hash in a list of tuples ordered by number of occurrences
     sorted_fdist = sorted(fdist.items(), key = operator.itemgetter(1))
     
+    sorted_fdist = sorted_fdist[80000:]
+    
     return sorted_fdist, allgrams
 
 #Extract matrix of tf values 
@@ -223,17 +225,17 @@ def run_PCA (feature_matrix):
     return X
 
 def main():
-    year = '2003'
+    year = '2004'
     
     dates, headlines = read_input()
     #stem_heads = stem_headlines(headlines)
     filtered_headlines = filter_headlines(headlines) #list of processed headlines
     sorted_fdist, allgrams = extract_ngrams(filtered_headlines) #sorted ngrams by frequency
-    year_headlines = extract_filtered_headlines_by_year (dates, filtered_headlines, year) #Get only headlines of defined year
+    #year_headlines = extract_filtered_headlines_by_year (dates, filtered_headlines, year) #Get only headlines of defined year
     
     #First, execute for all headlines
-    tf_matrix = extract_tf_matrix(headlines, sorted_fdist) #Calculate frequency matrix
-    idf_matrix = extract_idf_matrix(tf_matrix, headlines, sorted_fdist); #Calculate idf matrix
+    tf_matrix = extract_tf_matrix(filtered_headlines, sorted_fdist) #Calculate frequency matrix
+    idf_matrix = extract_idf_matrix(tf_matrix, filtered_headlines, sorted_fdist); #Calculate idf matrix
     tfidf_matrix = extract_tfidf_matrix(tf_matrix, idf_matrix) #Calculate tfidf matrix
     norm_tfidf_matrix = normalize_matrix(tfidf_matrix) #Normalize tfidf matrix
     
@@ -249,7 +251,7 @@ def main():
 
 def mbkmeans (k, feature_matrix):
     mbk = MiniBatchKMeans(init='k-means++', n_clusters=k, batch_size=100, n_init=10, max_no_improvement=10, verbose=0)
-    mbk.fit(X)
+    mbk.fit(feature_matrix)
     cost = mbk.inertia_
     
     return cost
