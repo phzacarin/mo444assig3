@@ -280,7 +280,7 @@ def analyze_result(k, mbk, headlines):
     #here, find tokens
     
     all_ngrams = list();
-    for (headline in curr_headline_list):
+    for headline in curr_headline_list:
         onegrams = ngrams(headline.split(), 1)
         all_ngrams.append(onegrams)
         

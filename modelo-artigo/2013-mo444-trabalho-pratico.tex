@@ -25,32 +25,29 @@
 \begin{document}
 
 %%% Title and authors %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\title{Assignment 1 - MO444}
+\title{Assignment 3 - MO444}
 \author{Pedro Henrique M. X. Zacarin\thanks{\textbf{Contact}: \tt\small{phzacarin@gmail.com}}\\
 }
 
 %%% Abstract %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \maketitle
 \begin{abstract}
-In this assignment, a dataset consisting of 58 predictive attributes, 2 non-predictive attributes and
-a goal field from a popular news website was provided, showing the number of shares each story had. The goal consisted of
-predicting the number of shares utilizing gradient descent for linear regression and normal equations in order to create a satisfying
-model for prediction.
+In this assignment, the goal was to clusterize all the headlines from a dataset consisting of 1 million headlines from the Australian Broadcast Corporation (ABC) over a period of 15 years based on topics.
 \end{abstract}
 
 %%% Introduction %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Introduction}
-A great amount of the news traffic from the web is generated through sharing. With the popularization of social media
-platforms, it's easier than ever for anyone to share stories they liked or found relevant with a group of friends or in their feed for any follower to see.
+Thousands of headlines are generated every day from news sources around the world. Normally, those headlines are categorized inside every news provider, such as newspapers, magazines and websites.
 
-For websites that creates the original pieces of news or articles, the reach of each story based on the number of shares it gets is always important, not only because it increases user traffic, but also because of the ad revenue it might generate.
+The categorization and clustering of a set of news is something very useful in various fields: search engines so it can find results based on a given topic, news aggregators that uses web crawlers to find content so it can filter through topics and recommendation systems that can offer news similar to the ones that are being read, or to the reader's content.
 
-In this assignment, we were provided with a dataset from the website "Mashable", which contains 58 features and a target consisting of the number of shares each piece of news had, in order to apply regression methods to try to predict the number of shares for new stories.
+In this assignment, a dataset consisting of 1 million headlines from the Australian Broadcast Corporation (ABC) was given, so the headlines could be clusterized in topics utilizing unsupervised learning methods such as KMeans.
 
 %%% Add section %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Proposed Solutions}
-The proposed solution for this assignment included:
+\section{Feature extraction}
+To solve the given problem, a set of features needs to be extracted from the headlines.
 
+To gather the needed features, the first step was to clean every headline to make it suitable for a bag-of-words representation. To do so, the following steps were taken:
 \begin{itemize}
 	\item Perform linear regression and then devise linear regression-based alternatives
 	\item Devise and test more complex models
