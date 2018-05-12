@@ -137,16 +137,17 @@ def extract_ngrams(filtered_headlines):
     #Transforming FreqDist hash in a list of tuples ordered by number of occurrences
     sorted_fdist = sorted(fdist.items(), key = operator.itemgetter(1))
     
-    sorted_fdist = sorted_fdist[80000:]
+    sorted_fdist = sorted_fdist[90000:]
     
     return sorted_fdist, allgrams
 
 #Extract matrix of tf values 
 def extract_tf_matrix(filtered_headlines, sorted_fdist):
     tf_matrix = np.zeros([len(filtered_headlines), len(sorted_fdist)])
-
+    print ("Extracting tf matrix... ")
+    
     for i in range (0, len(filtered_headlines)): #For all headlines. STARTS IN 0 IF LIST, 1 IF PANDAS DATAFRAME
-        print ("Processing headline #" + str(i))
+        #print ("Processing headline #" + str(i))
         feat_vec = [0] * len(sorted_fdist) #New feature array with the size of the hash
 
         for j in range (len(sorted_fdist)): #For each entry in the n-gram frequency list
@@ -189,7 +190,7 @@ def build_feature_set(stem_heads, filtered_sorted_fdist):
     
     #len(stem_heads)
     for i in range (0, len(stem_heads)): #For all headlines. STARTS IN 0 IF LIST, 1 IF PANDAS DATAFRAME
-        print ("Processing headline #" + str(i))
+        #print ("Processing headline #" + str(i))
         feat_vec = [0] * len(filtered_sorted_fdist) #New feature array with the size of the hash
         
         for j in range (len(filtered_sorted_fdist)): #For each entry in the n-gram frequency list
@@ -212,7 +213,7 @@ def extract_filtered_headlines_by_year (dates, headlines, year):
     for i in range(1, len(dates)):
         currYear = str(dates.iloc[i,0])[:4] #Get headline year
         if currYear[:4] == year:
-            year_headlines.append(headlines[i])
+            year_headlines.append(headlines[i-1])
             
     return year_headlines
 
@@ -225,28 +226,24 @@ def run_PCA (feature_matrix):
     return X
 
 def main():
-    year = '2004'
+    years = '2003'
     
     dates, headlines = read_input()
     #stem_heads = stem_headlines(headlines)
     filtered_headlines = filter_headlines(headlines) #list of processed headlines
     sorted_fdist, allgrams = extract_ngrams(filtered_headlines) #sorted ngrams by frequency
+    
     #year_headlines = extract_filtered_headlines_by_year (dates, filtered_headlines, year) #Get only headlines of defined year
     
-    #First, execute for all headlines
     tf_matrix = extract_tf_matrix(filtered_headlines, sorted_fdist) #Calculate frequency matrix
     idf_matrix = extract_idf_matrix(tf_matrix, filtered_headlines, sorted_fdist); #Calculate idf matrix
     tfidf_matrix = extract_tfidf_matrix(tf_matrix, idf_matrix) #Calculate tfidf matrix
     norm_tfidf_matrix = normalize_matrix(tfidf_matrix) #Normalize tfidf matrix
+   
+    #Run mini-batch-kmeans
+    mbk = mbkmeans(19, norm_tfidf_matrix)
     
-    run_mini_batch_kmeans(norm_tfidf_matrix, 1, 12) #Run KMeans
-    #pool = Pool(processes=4)
-    #feature_matrix = [pool.apply(build_feature_set, args=(year_headlines, filtered_sorted_fdist))]
-    
-    #with Pool(processes=4) as pool:
-    #    pool.starmap(build_feature_set, [(stem_heads, filtered_sorted_fdist)])
-    
-    return norm_tfidf_matrix
+    return mbk
 
 
 def mbkmeans (k, feature_matrix):
@@ -254,11 +251,11 @@ def mbkmeans (k, feature_matrix):
     mbk.fit(feature_matrix)
     cost = mbk.inertia_
     
-    return cost
+    return mbk
 
 def run_mini_batch_kmeans(feature_matrix, k_start, k_end):
     for i in range (k_start, k_end):
-        print("cost k=" + str(i) + " = " + str(mbkmeans(i, feature_matrix)))
+        print("cost k= " + str(i) + " = " + str(mbkmeans(i, feature_matrix)))
 
 def kmeans(k, feature_matrix):
     kmeans = KMeans(n_clusters = k, random_state = 0).fit(feature_matrix)
