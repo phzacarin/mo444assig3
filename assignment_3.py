@@ -226,23 +226,25 @@ def run_PCA (feature_matrix):
     return X
 
 def main():
-    years = '2003'
+    year = '2003'
     
     dates, headlines = read_input()
-    #stem_heads = stem_headlines(headlines)
     filtered_headlines = filter_headlines(headlines) #list of processed headlines
     sorted_fdist, allgrams = extract_ngrams(filtered_headlines) #sorted ngrams by frequency
     
     #year_headlines = extract_filtered_headlines_by_year (dates, filtered_headlines, year) #Get only headlines of defined year
-    
+
+    #First, execute for all headlines
     tf_matrix = extract_tf_matrix(filtered_headlines, sorted_fdist) #Calculate frequency matrix
     idf_matrix = extract_idf_matrix(tf_matrix, filtered_headlines, sorted_fdist); #Calculate idf matrix
     tfidf_matrix = extract_tfidf_matrix(tf_matrix, idf_matrix) #Calculate tfidf matrix
     norm_tfidf_matrix = normalize_matrix(tfidf_matrix) #Normalize tfidf matrix
-   
-    #Run mini-batch-kmeans
-    mbk = mbkmeans(19, norm_tfidf_matrix)
-    
+
+    k = 19
+
+    mbk = mbkmeans(k, norm_tfidf_matrix)
+    #run_mini_batch_kmeans(year, norm_tfidf_matrix, 1, 21) #Run KMeans
+
     return mbk
 
 
@@ -253,9 +255,9 @@ def mbkmeans (k, feature_matrix):
     
     return mbk
 
-def run_mini_batch_kmeans(feature_matrix, k_start, k_end):
+def run_mini_batch_kmeans(year, feature_matrix, k_start, k_end):
     for i in range (k_start, k_end):
-        print("cost k= " + str(i) + " = " + str(mbkmeans(i, feature_matrix)))
+        print("cost for year: " + str(year) + " and k= " + str(i) + " = " + str(mbkmeans(i, feature_matrix)))
 
 def kmeans(k, feature_matrix):
     kmeans = KMeans(n_clusters = k, random_state = 0).fit(feature_matrix)
@@ -266,7 +268,30 @@ def kmeans(k, feature_matrix):
 def run_kmeans(feature_matrix, k_start, k_end):
     for i in range (k_start, k_end):
         print("cost k=" + str(i) + " = " + str(kmeans(i, feature_matrix)))
+        
+#Find 1-grams of all headlines from cluster k in order to be easily analyzable
+def analyze_result(k, mbk, headlines):
+    cluster_map = pd.DataFrame()
+    cluster_map['cluster'] = mbk.labels_ 
+    cluster_map['headline'] = headlines
     
+    curr_map = cluster_map.loc[cluster_map['cluster'] == k] #Separate by cluster
+    curr_headline_list = list(curr_map['headline']) #Get only headlines for current cluster
+    #here, find tokens
+    
+    all_ngrams = list();
+    for (headline in curr_headline_list):
+        onegrams = ngrams(headline.split(), 1)
+        all_ngrams.append(onegrams)
+        
+    #Here we have all 1-grams for all headlines of current cluster
+    #Calculating all frequencies
+    fdist = nltk.FreqDist(all_ngrams)
+    
+    #Transforming FreqDist hash in a list of tuples ordered by number of occurrences
+    sorted_fdist = sorted(fdist.items(), key = operator.itemgetter(1))
+    
+    return sorted_fdist
     
         
     
