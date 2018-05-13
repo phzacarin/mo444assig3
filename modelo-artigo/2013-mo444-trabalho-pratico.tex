@@ -37,7 +37,7 @@ In this assignment, the goal was to clusterize all the headlines from a dataset 
 
 %%% Introduction %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Introduction}
-Thousands of headlines are generated every day from news sources around the world. Normally, those headlines are categorized inside every news provider, such as newspapers, magazines and websites.
+Thousands of headlines are generated every day from news sources around the world. Normally, those headlines are categorized inside its source, such as newspapers, magazines and websites.
 
 The categorization and clustering of a set of news is something very useful in various fields: search engines so it can find results based on a given topic, news aggregators that uses web crawlers to find content so it can filter through topics and recommendation systems that can offer news similar to the ones that are being read, or to the reader's content.
 
@@ -49,81 +49,49 @@ To solve the given problem, a set of features needs to be extracted from the hea
 
 To gather the needed features, the first step was to clean every headline to make it suitable for a bag-of-words representation. To do so, the following steps were taken:
 \begin{itemize}
-	\item Perform linear regression and then devise linear regression-based alternatives
-	\item Devise and test more complex models
-	\item Use different gradient descent learning rates when optimizing
-	\item Compare the results obtained with dradient descent with normal equations results.
+	\item All numbers were removed
+	\item All stop-words (like connection words that are not relevant to classification) were removed
+	\item All words in each headline was replaced with its stem word (word without prefixes or suffixes) 
 \end{itemize}
 
+After all headlines were cleaned, n-grams were extracted from all of them. For this assignment, char-4-grams was chosen because in other experiments [REFERENCIA ANDERSON] the result achieved was better than word-level n-grams. By choosing char-4-grams, it means that the n-grams extracted were consisted of 4 chars, including spaces, from the original headline.
+
+Once all char-4-grams were extracted, they were sorted by occurrence frequency and only about the top 15$\%$ in the ranking were considered in the feature extraction process. A relatively small amount of the most frequent n-grams were considered because its total number together with the total number of headlines to be analyzed is too big, which caused many problems regarding exceeding memory consumption and Python environment kernel deaths.
+
+With the most frequent char-4-grams in hand, the feature matrix was build following the steps below:
+\begin{enumerate}
+	\item Build a hash of the most frequent char-4-grams as keys and its occurrences frequencies as values
+	\item Create a zero-filled matrix with the number of rows being the number of total headlines and the number of columns being the total number of char-4-grams in the previous step's hash
+	\item For each char-4-gram (or, for each column $j$ in the matrix), count its frequency in each headline (each row $i$ of the matrix) and assign this number to the associated position $(i,j)$ in the feature matrix. This calculation is called $tf$, which means $therm frequency$.
+	\item Calculate, for all char-4-grams, its $idf$ ($inverse document frequency$) and create a diagonal matrix with those values
+	\item Calculate the $tf*idf$ matrix by multiplying both $tf$ and $idf$ matrices
+	\item Apply L2 normalization to the final matrix
+\end{enumerate}
+
+With all the steps above done, the final feature matrix is complete.
+
 %%% Add section %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Development and Results}
-At first, a linear regression was performed with Gradient Descent algorithm in order to optimize the linearization, which consists in decreasing the cost function $J(\theta)$:
+\section{Clustering}
+In order to separate all headlines into groups, K-Means algorithm was chosen. This method aims to partition the dataset so as to minimize the within-cluster sum of squares (or variance).
 
-\begin{equation}\label{eq:gdcost}
-J(\theta) = \frac{1}{2m} \sum\limits_{i=1}^m  (h_{\theta}(x^{(i(})-y^{(i)})^{2}
-\end{equation}
+As the standard K-Means is computationally intensive when using the whole dataset of headlines,  a simpler, faster derivation of it was chosen, with minimal impacts in the final results: mini batch KMeans. In this approach, a small random batch is taken for each iteration and for each data point in this batch a cluster is assigned  depending on the previous locations of the cluster centroids. It then updates the location of cluster centroids based on the new points from the batch. 
 
-where m is the number of samples, x is current feature and y is the current target.
-As the values of the features are very sparse, a normalization technique was applied to them in order to map its values to a defined range:
+\section{Execution and Results}
 
-\begin{equation}\label{eq:normalization}
-\dfrac{X - \mu}{\sigma}
-\end{equation}
-where $\mu$ is the mean of the features's values and $\sigma$ is the standard deviation of the same values.
-
-A number of values for $\alpha$ (learning rate) and iterations were tested, and a good choice, which made the cost function decrease for every iteration until it the function approached the global minima, consisted of $\alpha = 0.01$ and number of iterations = 1000.
-
-The results of the first run of the gradient descent algorithm shown that, for the train set, the cost $J(\theta)$ dropped down significantly until the 150th iteration, but its value at the final ones was very big, as can be seen in Figure ~\ref{fig:first_run_label}. At the lowest part of the cost curve, the mean of the errors (predicted quantity of shares minus actual number of shares) was 3000 shares, which gives an average percentual error of 190$\%$.
+For the whole dataset of 1 million headlines, mini batch KMeans was run with a batch of $100$, initialization being KMeans++ and K ranging from 2 to 20. The cost (inertia) for each K was plotted in a chart so the optimal number of K could be assessed by the elbow rule.
 
 \begin{figure}[H]
 \begin{center}
-	\includegraphics[width=0.4\textwidth]{pics/first_run_001_1000}
-	\caption{Cost $J(\theta)$ vs number of iterations graph\label{fig:first_run_label}}   
+	\includegraphics[width=0.4\textwidth]{pics/graph_inertia_all}
+	\caption{Cost (inertia) of mini batch KMeans vs value of K\label{fig:graph_inertia_all}}   
 \end{center} 
 \end{figure}   
 
-When the thetas found in the current linearization were applied to the test set, an average error of 3177 shares, and an average percentual error of 169$\%$.
+Analyzing the Figure ~\ref{fig:graph_inertia_all}, it can be seen that the smallest cost was achieved with K = $19$, so that number was utilized to perform the final clustering process and the analysis of each one's content.
 
-In order to try to improve the errors obtained, a few tweaks were made to the training set. First, elements of higher orders were added to it by taking all features to their 2nd to 12th powers and appending them to the set. This technique may be great to achieve smaller errors within the linear regression using the training set, but it may cause overfitting, which can be tested using the thetas found running the algorithm with the training set with the test set. The cost function graph for this run of gradient descent is shown in Figure ~\ref{fig:second_run_label}.
+To analyze the results, all headlines assigned to each cluster were separated in lists. From those headlines, its word-level 1-grams were extracted and put in order of occurrences, so the key words for each cluster could be easily assessed and consequently, the cluster's topic found.
 
-\begin{figure}[H]
-\begin{center}
-	\includegraphics[width=0.4\textwidth]{pics/power_12_wo_reg}
-	\caption{Cost $J(\theta)$ vs number of iterations graph with new features of higher order in the training set\label{fig:second_run_label}}
-\end{center} 
-\end{figure}   
 
-This approach led to a minimal decrease of the errors from the training set, from an average of 3000 shares to 2987 shares. Although that indicator improved, as expected, the error from the test set increased, from an average of 3177 shares to 3204 shares, illustrating an example of slight overfitting. 
-
-In order to try to decrease the effect of overfitting, a regularization method (running gradient descent with the iteration shown in Equation ~\ref{eq:regularization})) was applied to atenuate the higher order weights. Values of $\lambda$ of 1000, 10000 and 100000 were tested, with 100000 giving the smallest error difference between the training and test set, although with a higher training set error compared to not using regularization at all. The average error for the training set was 3020 shares and for the test set, 3190 shares (Figure ~\ref{fig:power_12_with_reg}).
-
-\begin{equation}\label{eq:regularization}
-\theta_{j} := \theta_{j}(1 - \alpha \dfrac{\lambda}{m}) - \sum\limits_{i=1}^m  (h_{\theta}(x^{(i)})-y^{(i)})x_{j}^{(i)}
-\end{equation}
-
-\begin{figure}[H]
-\begin{center}
-	\includegraphics[width=0.4\textwidth]{pics/power_12_with_reg_100k}
-	\caption{Cost $J(\theta)$ vs number of iterations graph with new features of higher order in the training set with regularization applied ($\lambda = 100000$)\label{fig:power_12_with_reg}}
-\end{center} 
-\end{figure}   
-
-Another approach in trying to decrease the prediction error was removing all the discrete variables from the feature set and running gradient descent with the normalized remaining continuous features. As is shown in Figure ~\ref{fig:third_run_label}, the results didn't get better, resulting in an average error of 3021 shares and an average percentual error of 194$\%$. Using the thetas found previously with the features from the test set, an average error of 3195 shares and an average percentual error of 170$\%$ was obtained.
-
-\begin{figure}[H]
-\begin{center}
-	\includegraphics[width=0.4\textwidth]{pics/third_run_001_1000}
-	\caption{Cost $J(\theta)$ vs number of iterations graph for training set containing only continuous features\label{fig:third_run_label}}
-\end{center} 
-\end{figure}   
-
-A great method to find the optimal values of the thetas for a number of features < 5000 is to apply the normal equations method. It consists of a closed formula that utilizes the features matrix $X$ and the target array $y$ and outputs the thetas array $\theta$:
-
-\begin{equation}\label{eq:normal_eq}
-\theta = (X^{T}X)^{-1})X^{T}y
-\end{equation}
-
-Applying the Equation ~\ref{eq:normal_eq}, and utilizing the result to calculate the errors from the training set, an average error of 2999 shares and an average percentual error of 191$\%$ was obtained. Utilizing the test set, those numbers were 3177 and 165 $\%$, which characterizes a small overfit.
 
 %%% Add section %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Discussion}

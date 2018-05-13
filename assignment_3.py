@@ -282,7 +282,9 @@ def analyze_result(k, mbk, headlines):
     all_ngrams = list();
     for headline in curr_headline_list:
         onegrams = ngrams(headline.split(), 1)
-        all_ngrams.append(onegrams)
+        curr_grams_list = list(onegrams)
+        for j in range (len(curr_grams_list)):
+            all_ngrams.append ("".join(curr_grams_list[j]))
         
     #Here we have all 1-grams for all headlines of current cluster
     #Calculating all frequencies
@@ -293,6 +295,28 @@ def analyze_result(k, mbk, headlines):
     
     return sorted_fdist
     
+#Find 1-grams of all headlines from cluster k in order to be easily analyzable
+def analyze_result_with_cluster_map(k, cluster_map, headlines):
+ 
+    curr_map = cluster_map.loc[cluster_map['cluster'] == k] #Separate by cluster
+    curr_headline_list = list(curr_map['headline']) #Get only headlines for current cluster
+    #here, find tokens
+    
+    all_ngrams = list();
+    for headline in curr_headline_list:
+        onegrams = ngrams(headline.split(), 1)
+        curr_grams_list = list(onegrams)
+        for j in range (len(curr_grams_list)):
+            all_ngrams.append ("".join(curr_grams_list[j]))
+        
+    #Here we have all 1-grams for all headlines of current cluster
+    #Calculating all frequencies
+    fdist = nltk.FreqDist(all_ngrams)
+    
+    #Transforming FreqDist hash in a list of tuples ordered by number of occurrences
+    sorted_fdist = sorted(fdist.items(), key = operator.itemgetter(1))
+    
+    return sorted_fdist
         
     
         
