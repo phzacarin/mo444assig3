@@ -26,14 +26,8 @@
 
 %%% Title and authors %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \title{Assignment 3 - MO444}
-\author{
-  Pedro Henrique M. X. Zacarin\\
-  \texttt{pjzacarin@gmail.com}
-  \and
-  Everton Carlos Rocha\\
-  \texttt{thonrocha@gmail.com}
+\author{Pedro Henrique M. X. Zacarin\thanks{\textbf{Contact}: \tt\small{phzacarin@gmail.com}}\\
 }
-
 
 %%% Abstract %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \maketitle
@@ -75,8 +69,6 @@ With the most frequent char-4-grams in hand, the feature matrix was build follow
 \end{enumerate}
 
 With all the steps above done, the final feature matrix is complete.
-
-To reduce the matrix dimensionality, PCA was utilized in the first execution, but as it showed no cost decrease and took a long time to execute, was not considered for further executions.
 
 %%% Add section %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Clustering}
@@ -127,28 +119,37 @@ After the whole cluster analysis considering the whole dataset, headlines from 3
 
 For the year 2003, the number of clusters K that showed minimal inertia was $14$, for the year 2005, $15$ and for 2007, $19$. Analyzing those numbers, it can be seen that two of them (K = $14$, for 2003, and K = $15$, for 2005) were different from the one found with all the headlines (K = $19$), and one was exactly the same (K = $19$ for 2007).
 
-The most frequent themes that could be identified from the 2003 headlines were: criminal, law, world news, places, health, Tasmania, interviews and leadership. For the year 2005, violence, international news, Iraq war, education, local politics, asian news, criminality. Finally, for the year 2007, the most frequent themes were government, criminality, environment, law, Australian cup, investigation, Iraq and education.
+The most frequent themes that could be identified from the 2003 headlines were: criminal, law, world news, places, health, Tasmania, interviews and leadership. For the year 2005, XXX and XXX, and for 2013, XXXX.
 
-%%% Add section %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Discussion and Conclusion}
+
+\section{Discussion}
 %%%Talk about the experiments carried out and the obtained results. 
 
-\CITEONE{Silva}{Silva_2010} for papers with one author.
-\CITETWO{Silva}{Souza}{Silva_2010b} for papers with two authors.
-\CITEN{Silva}{Silva_2010c} for papers with three or more authors.
+As all methods for feature extraction were used in the literature with success, at least a good result using them was expected. 
 
-By analyzing the clusters topics obtained from all headlines, it can be seen that most of them have a distinct subject, albeit having some words with high frequency that do not match the main topic. There is also a repetition of some topics, for example criminal news, which leads to believe that the final number of optimal clusters may be smaller than previously thought.
+When utilizing a feature set with features only sourced from the Local Binary Patterns, the best classifier accuracy obtained was of $38.8\%$ when utilizing logistic regression for the test set and $72\%$ for cross-validation, which may characterize overfitting.
 
-When comparing the topics found from all headlines to the ones obtained from 2003, 2005 and 2007 headlines, some common ones could be seen, such as government, criminality, politics, law and Australian related news. Some topics, though, were very relevant to a certain year, for instance the Iraqi war in the year 2005 and Australian cup in the year 2007. Some clusters in the yearly analysis didn't show a subject convergence (about a quarter of them), which is about the same ratio of the ones that could not be identified from all years. One common characteristic in some yearly analysis's clusters were the gathering of similar words, such as "England", "land", "Ireland", "Newfoundland", "island", which did't belong to a particular common topic.
+As more features were added to try to improve the results, an unexpected drop in accuracy was shown: for logistic regression classifier, a test set accuracy of $12.2\%$ and a cross-validation accuracy of $52.2\%$ were obtained and for the neural network implementation, $16.3\%$ and $30.4\%$ respectively.
+   
+None of the results obtained were satisfying to classify the images correctly. Even with a $72\%$ cross-validation accuracy for the Local Binary Patterns, the classifier fell short when the input was an image from the test set.
 
-Both in the whole dataset analysis and in defined years analysis there was a repetition in themes, especially in the criminal, violence, law and government subjects. That shows that possibly the number of K clusters chosen for each dataset run through mini batch KMeans was slightly over the optimal value.
+As adding more features shown a big drop in accuracy, which in this case is counter-intuitive, either those features didn't have an effect to characterizing the sensor noise patterns or some error occurred in the algorithm implementations.
 
-Overall, the clustering process provided good results, with the majority of the clusters being identifiable, although some of them with repeated subjects. For future work, a smaller value of K should be tested to see if the clusters topics repetition is mitigated.
+%%% Add section %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Conclusions}
 
+After utilizing different methods with different feature sets, the final classification accuracies for the test set were far from great.
+
+For the Linear Binary Patterns features, as it shown the best result, maybe an improvement in the post-processing of the PRNU-based noise image was needed for a more relevant result. 
+
+For both the Linear Binary Patterns features and, after, the more complete feature set including values of mean, variance, skewness, kurtosis and correlations, there may be occurred a slight overfit, as there is a considerable difference between the cross-validation and test set accuracies. Another important detail is that probably there was a a difficulty for the classifier to identify modified pictures (as it happens in half of the pictures from the test set), aggravated by the fact that the correlations between the noise of the image being analyzed and the means of the noises from all pictures for each camera were taken considering only a central patch of $512$ by $512$ pixels, which probably led to values that weren't "assertive" enough to weight in the classification process.
+ 
 %%% References %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-{\small
-\bibliographystyle{unsrt}
-\bibliography{referencias-exemplo}
-}
+\section{References}
+
+[1] Jocelin Rosales Corripio and David Maniel Arenas Gonzalez and Ana Lucila Sandoval Orozco and Luis Javier Garcia Villalba and Julio Hernandez-Castro and Stuart James Gibson. Source Smarphone Identification Using Sensor Pattern Noise and Wavelet Transform. In \textit{Proceedings of the IEEE Computer Society Conference on Computer Vision and Pattern Recognition (CVPR)}, London, UK, 2013.
+
+[2] Guansho Xu and Yun Qing Shi. Camera Model Identification Using Local Binary Patterns. In \textit{Imaging for Crime Detection and Prevention, 2013, ICDP.}, Melbourne, Australia, 2012.
+
 
 \end{document}

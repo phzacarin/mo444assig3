@@ -226,17 +226,17 @@ def run_PCA (feature_matrix):
     return X
 
 def main():
-    year = '2003'
+    year = '2007'
     
     dates, headlines = read_input()
     filtered_headlines = filter_headlines(headlines) #list of processed headlines
     sorted_fdist, allgrams = extract_ngrams(filtered_headlines) #sorted ngrams by frequency
     
-    #year_headlines = extract_filtered_headlines_by_year (dates, filtered_headlines, year) #Get only headlines of defined year
+    year_headlines = extract_filtered_headlines_by_year (dates, filtered_headlines, year) #Get only headlines of defined year
 
     #First, execute for all headlines
-    tf_matrix = extract_tf_matrix(filtered_headlines, sorted_fdist) #Calculate frequency matrix
-    idf_matrix = extract_idf_matrix(tf_matrix, filtered_headlines, sorted_fdist); #Calculate idf matrix
+    tf_matrix = extract_tf_matrix(year_headlines, sorted_fdist) #Calculate frequency matrix
+    idf_matrix = extract_idf_matrix(tf_matrix, year_headlines, sorted_fdist); #Calculate idf matrix
     tfidf_matrix = extract_tfidf_matrix(tf_matrix, idf_matrix) #Calculate tfidf matrix
     norm_tfidf_matrix = normalize_matrix(tfidf_matrix) #Normalize tfidf matrix
 
